@@ -1,70 +1,62 @@
 package com.noorifytech.revolut.service
 
-import com.noorifytech.revolut.model.*
+import com.noorifytech.revolut.dao.impl.db.H2Database.query
+import com.noorifytech.revolut.dto.ChangeType
+import com.noorifytech.revolut.dto.NewWidgetDto
+import com.noorifytech.revolut.dto.Notification
+import com.noorifytech.revolut.dto.WidgetDto
+import com.noorifytech.revolut.entity.Widgets
 import org.jetbrains.exposed.sql.*
-import com.noorifytech.revolut.service.DatabaseFactory.dbQuery
 
 class WidgetService {
 
-    private val listeners = mutableMapOf<Int, suspend (Notification<Widget?>) -> Unit>()
+    private val listeners = mutableMapOf<Int, suspend (Notification<WidgetDto?>) -> Unit>()
 
-    fun addChangeListener(id: Int, listener: suspend (Notification<Widget?>) -> Unit) {
+    fun addChangeListener(id: Int, listener: suspend (Notification<WidgetDto?>) -> Unit) {
         listeners[id] = listener
     }
 
     fun removeChangeListener(id: Int) = listeners.remove(id)
 
-    private suspend fun onChange(type: ChangeType, id: Int, entity: Widget?=null) {
+    private suspend fun onChange(type: ChangeType, id: Int, entity: WidgetDto? = null) {
         listeners.values.forEach {
             it.invoke(Notification(type, id, entity))
         }
     }
 
-    suspend fun getAllWidgets(): List<Widget> = dbQuery {
+    suspend fun getAllWidgets(): List<WidgetDto> = query {
         Widgets.selectAll().map { toWidget(it) }
     }
 
-    suspend fun getWidget(id: Int): Widget? = dbQuery {
+    suspend fun getWidget(id: Int): WidgetDto? = query {
         Widgets.select {
             (Widgets.id eq id)
         }.mapNotNull { toWidget(it) }
                 .singleOrNull()
     }
 
-    suspend fun updateWidget(widget: NewWidget): Response<Widget> {
+    suspend fun updateWidget(widget: NewWidgetDto): WidgetDto? {
         val id = widget.id
         return if (id == null) {
-            Response(addWidget(widget), HttpStatusCode.OK.value, "Updated successfully")
+            addWidget(widget)
         } else {
-            val updatedStatus = dbQuery {
-                try {
+            query {
                     Widgets.update({ Widgets.id eq id }) {
                         it[name] = widget.name
                         it[quantity] = widget.quantity
                         it[dateUpdated] = System.currentTimeMillis()
                     }
-
-                    throw java.lang.Exception("couldn't update database")
-
-                    it.commit()
-                    true
-                } catch (ex: Exception) {
-                    it.rollback()
-                    false
-                }
             }
 
-            return if(updatedStatus) {
-                Response(getWidget(id), HttpStatusCode.OK.value, "Updated successfully")
-            } else {
-                Response(null, HttpStatusCode.Conflict.value, "Error in Updation!!!")
+            getWidget(id).also {
+                onChange(ChangeType.UPDATE, id, it)
             }
         }
     }
 
-    suspend fun addWidget(widget: NewWidget): Widget {
+    suspend fun addWidget(widget: NewWidgetDto): WidgetDto {
         var key = 0
-        dbQuery {
+        query {
             key = (Widgets.insert {
                 it[name] = widget.name
                 it[quantity] = widget.quantity
@@ -77,15 +69,15 @@ class WidgetService {
     }
 
     suspend fun deleteWidget(id: Int): Boolean {
-        return dbQuery {
+        return query {
             Widgets.deleteWhere { Widgets.id eq id } > 0
         }.also {
             if(it) onChange(ChangeType.DELETE, id)
         }
     }
 
-    private fun toWidget(row: ResultRow): Widget =
-            Widget(
+    private fun toWidget(row: ResultRow): WidgetDto =
+            WidgetDto(
                     id = row[Widgets.id],
                     name = row[Widgets.name],
                     quantity = row[Widgets.quantity],

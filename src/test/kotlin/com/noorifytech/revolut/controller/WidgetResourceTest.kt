@@ -1,10 +1,10 @@
-package com.noorifytech.revolut.web
+package com.noorifytech.revolut.controller
 
 import com.noorifytech.revolut.common.ServerTest
+import com.noorifytech.revolut.dto.NewWidgetDto
+import com.noorifytech.revolut.dto.WidgetDto
 import io.restassured.RestAssured.*
 import io.restassured.http.ContentType
-import com.noorifytech.revolut.model.NewWidget
-import com.noorifytech.revolut.model.Widget
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -14,12 +14,12 @@ class WidgetResourceTest: ServerTest() {
     @Test
     fun testCreateWidget() {
         // when
-        val newWidget = NewWidget(null, "widget1", 12)
+        val newWidget = NewWidgetDto(null, "widget1", 12)
         val created = addWidget(newWidget)
 
         val retrieved = get("/widget/{id}", created.id)
                 .then()
-                .extract().to<Widget>()
+                .extract().to<WidgetDto>()
 
         // then
         assertThat(created.name).isEqualTo(newWidget.name)
@@ -31,15 +31,15 @@ class WidgetResourceTest: ServerTest() {
     @Test
     fun testGetWidgets() {
         // when
-        val widget1 = NewWidget(null, "widget1", 10)
-        val widget2 = NewWidget(null, "widget2", 5)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
+        val widget2 = NewWidgetDto(null, "widget2", 5)
         addWidget(widget1)
         addWidget(widget2)
 
         val widgets = get("/widget")
                 .then()
                 .statusCode(200)
-                .extract().to<List<Widget>>()
+                .extract().to<List<WidgetDto>>()
 
         assertThat(widgets).hasSize(2)
         assertThat(widgets).extracting("name").containsExactlyInAnyOrder(widget1.name, widget2.name)
@@ -49,11 +49,11 @@ class WidgetResourceTest: ServerTest() {
     @Test
     fun testUpdateWidget() {
         // when
-        val widget1 = NewWidget(null, "widget1", 10)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
         val saved = addWidget(widget1)
 
         // then
-        val update = NewWidget(saved.id, "updated", 46)
+        val update = NewWidgetDto(saved.id, "updated", 46)
         val updated = given()
                 .contentType(ContentType.JSON)
                 .body(update)
@@ -61,7 +61,7 @@ class WidgetResourceTest: ServerTest() {
                 .put("/widget")
                 .then()
                 .statusCode(200)
-                .extract().to<Widget>()
+                .extract().to<WidgetDto>()
 
         assertThat(updated).isNotNull
         assertThat(updated.id).isEqualTo(update.id)
@@ -72,7 +72,7 @@ class WidgetResourceTest: ServerTest() {
     @Test
     fun testDeleteWidget() {
         // when
-        val newWidget = NewWidget(null, "widget1", 12)
+        val newWidget = NewWidgetDto(null, "widget1", 12)
         val created = addWidget(newWidget)
 
         // then
@@ -90,7 +90,7 @@ class WidgetResourceTest: ServerTest() {
 
         @Test
         fun testUpdateInvalidWidget() {
-            val updatedWidget = NewWidget(-1, "invalid", -1)
+            val updatedWidget = NewWidgetDto(-1, "invalid", -1)
             given()
                     .contentType(ContentType.JSON)
                     .body(updatedWidget)
@@ -116,7 +116,7 @@ class WidgetResourceTest: ServerTest() {
 
     }
 
-    private fun addWidget(widget: NewWidget): Widget {
+    private fun addWidget(widget: NewWidgetDto): WidgetDto {
         return given()
                 .contentType(ContentType.JSON)
                 .body(widget)

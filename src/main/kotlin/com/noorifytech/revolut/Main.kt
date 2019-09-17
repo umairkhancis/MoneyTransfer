@@ -1,6 +1,19 @@
 package com.noorifytech.revolut
 
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.noorifytech.revolut.controller.account
+import com.noorifytech.revolut.controller.accountTransaction
+import com.noorifytech.revolut.controller.widget
+import com.noorifytech.revolut.dao.impl.AccountDaoImpl
+import com.noorifytech.revolut.dao.impl.AccountTransactionDaoImpl
+import com.noorifytech.revolut.dao.impl.db.H2Database
+import com.noorifytech.revolut.mapper.AccountMapper
+import com.noorifytech.revolut.mapper.AccountTransactionMapper
+import com.noorifytech.revolut.repository.impl.AccountRepositoryImpl
+import com.noorifytech.revolut.repository.impl.AccountTransactionRepositoryImpl
+import com.noorifytech.revolut.service.WidgetService
+import com.noorifytech.revolut.service.impl.AccountServiceImpl
+import com.noorifytech.revolut.service.impl.AccountTransactionServiceImpl
 import io.ktor.application.Application
 import io.ktor.application.install
 import io.ktor.features.CallLogging
@@ -8,13 +21,9 @@ import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
 import io.ktor.jackson.jackson
 import io.ktor.routing.Routing
-import io.ktor.server.engine.commandLineEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.websocket.WebSockets
-import com.noorifytech.revolut.service.DatabaseFactory
-import com.noorifytech.revolut.service.WidgetService
-import com.noorifytech.revolut.web.widget
 
 fun Application.module() {
     install(DefaultHeaders)
@@ -27,12 +36,17 @@ fun Application.module() {
         }
     }
 
-    DatabaseFactory.init()
-
-    val widgetService = WidgetService()
+    H2Database.init()
 
     install(Routing) {
-        widget(widgetService)
+        widget(WidgetService())
+        account(AccountServiceImpl(AccountRepositoryImpl(AccountDaoImpl(H2Database, AccountMapper))))
+        accountTransaction(
+                AccountTransactionServiceImpl(
+                        AccountTransactionRepositoryImpl(AccountTransactionDaoImpl(H2Database, AccountMapper, AccountTransactionMapper)),
+                        AccountRepositoryImpl(AccountDaoImpl(H2Database, AccountMapper))
+                )
+        )
     }
 
 }

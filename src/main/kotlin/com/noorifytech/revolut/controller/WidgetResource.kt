@@ -1,7 +1,9 @@
-package com.noorifytech.revolut.web
+package com.noorifytech.revolut.controller
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.noorifytech.revolut.dto.NewWidgetDto
+import com.noorifytech.revolut.service.WidgetService
 import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.Frame
@@ -9,9 +11,6 @@ import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.*
 import io.ktor.websocket.webSocket
-import com.noorifytech.revolut.model.NewWidget
-import com.noorifytech.revolut.service.WidgetService
-import io.ktor.http.isSuccess
 
 fun Route.widget(widgetService: WidgetService) {
 
@@ -29,16 +28,15 @@ fun Route.widget(widgetService: WidgetService) {
         }
 
         post("/") {
-            val widget = call.receive<NewWidget>()
+            val widget = call.receive<NewWidgetDto>()
             call.respond(HttpStatusCode.Created, widgetService.addWidget(widget))
         }
 
         put("/") {
-            val widget = call.receive<NewWidget>()
-            val response = widgetService.updateWidget(widget)
-
-            val httpStatusCode = HttpStatusCode.fromValue(response.code)
-            call.respond(httpStatusCode, response)
+            val widget = call.receive<NewWidgetDto>()
+            val updated = widgetService.updateWidget(widget)
+            if (updated == null) call.respond(HttpStatusCode.NotFound)
+            else call.respond(HttpStatusCode.OK, updated)
         }
 
         delete("/{id}") {

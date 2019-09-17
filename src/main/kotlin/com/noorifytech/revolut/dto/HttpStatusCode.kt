@@ -1,4 +1,4 @@
-package com.noorifytech.revolut.model
+package com.noorifytech.revolut.dto
 
 /**
  * Represents an HTTP status code and description.

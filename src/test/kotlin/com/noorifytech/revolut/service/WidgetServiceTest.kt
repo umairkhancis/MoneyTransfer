@@ -1,11 +1,11 @@
 package com.noorifytech.revolut.service
 
 import com.noorifytech.revolut.common.ServerTest
+import com.noorifytech.revolut.dto.ChangeType
+import com.noorifytech.revolut.dto.NewWidgetDto
+import com.noorifytech.revolut.dto.Notification
+import com.noorifytech.revolut.dto.WidgetDto
 import kotlinx.coroutines.runBlocking
-import com.noorifytech.revolut.model.ChangeType
-import com.noorifytech.revolut.model.NewWidget
-import com.noorifytech.revolut.model.Notification
-import com.noorifytech.revolut.model.Widget
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -17,7 +17,7 @@ class WidgetServiceTest: ServerTest() {
     @Test
     fun testAddWidget() = runBlocking {
         // given
-        val widget1 = NewWidget(null, "widget1", 10)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
 
         // when
         val saved = addWidget(widget1)
@@ -34,8 +34,8 @@ class WidgetServiceTest: ServerTest() {
     @Test
     fun testGetAllWidgets() = runBlocking {
         // given
-        val widget1 = NewWidget(null, "widget1", 10)
-        val widget2 = NewWidget(null, "widget2", 5)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
+        val widget2 = NewWidgetDto(null, "widget2", 5)
         addWidget(widget1)
         addWidget(widget2)
 
@@ -53,11 +53,11 @@ class WidgetServiceTest: ServerTest() {
     @Test
     fun testUpdateWidget() = runBlocking {
         // given
-        val widget1 = NewWidget(null, "widget1", 10)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
         val saved = addWidget(widget1)
 
         // when
-        val update = NewWidget(saved.id, "updated", 46)
+        val update = NewWidgetDto(saved.id, "updated", 46)
         val updated = widgetService.updateWidget(update)
 
         // then
@@ -74,7 +74,7 @@ class WidgetServiceTest: ServerTest() {
     @Test
     fun testUpdateWidgetNoIdInserts() = runBlocking {
         // given
-        val widget1 = NewWidget(null, "widget1", 10)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
         val inserted = widgetService.updateWidget(widget1)
 
         // then
@@ -90,7 +90,7 @@ class WidgetServiceTest: ServerTest() {
     @Test
     fun testDeleteWidget() = runBlocking {
         // given
-        val widget1 = NewWidget(null, "widget1", 10)
+        val widget1 = NewWidgetDto(null, "widget1", 10)
         val saved = addWidget(widget1)
 
         // when
@@ -109,10 +109,10 @@ class WidgetServiceTest: ServerTest() {
 
         @Test
         fun testNotifyAdd() = runBlocking {
-            val widget1 = NewWidget(null, "widget1", 10)
+            val widget1 = NewWidgetDto(null, "widget1", 10)
 
             var called = false
-            val func: suspend (Notification<Widget?>) -> Unit = {
+            val func: suspend (Notification<WidgetDto?>) -> Unit = {
                 assertThat(it.type).isEqualTo(ChangeType.CREATE)
                 assertThat(it.entity?.name).isEqualTo(widget1.name)
                 assertThat(it.entity?.quantity).isEqualTo(widget1.quantity)
@@ -127,12 +127,12 @@ class WidgetServiceTest: ServerTest() {
 
         @Test
         fun testNotifyUpdate() = runBlocking {
-            val widget1 = NewWidget(null, "widget1", 10)
+            val widget1 = NewWidgetDto(null, "widget1", 10)
             val saved = addWidget(widget1)
-            val updated = NewWidget(null, "updated", 25)
+            val updated = NewWidgetDto(null, "updated", 25)
 
             var called = false
-            val func: suspend (Notification<Widget?>) -> Unit = {
+            val func: suspend (Notification<WidgetDto?>) -> Unit = {
                 assertThat(it.type).isEqualTo(ChangeType.UPDATE)
                 assertThat(it.entity?.name).isEqualTo(updated.name)
                 assertThat(it.entity?.quantity).isEqualTo(updated.quantity)
@@ -148,11 +148,11 @@ class WidgetServiceTest: ServerTest() {
 
         @Test
         fun testNotifyDelete() = runBlocking {
-            val widget1 = NewWidget(null, "widget1", 10)
+            val widget1 = NewWidgetDto(null, "widget1", 10)
             val saved = addWidget(widget1)
 
             var called = false
-            val func: suspend (Notification<Widget?>) -> Unit = {
+            val func: suspend (Notification<WidgetDto?>) -> Unit = {
                 assertThat(it.type).isEqualTo(ChangeType.DELETE)
                 assertThat(it.entity).isNull()
                 assertThat(it.id).isEqualTo(saved.id)
@@ -168,13 +168,13 @@ class WidgetServiceTest: ServerTest() {
         @Test
         fun testRemoveListener() = runBlocking {
             var called = false
-            val func: suspend (Notification<Widget?>) -> Unit = {
+            val func: suspend (Notification<WidgetDto?>) -> Unit = {
                 called = true
             }
 
             widgetService.addChangeListener(123, func)
             widgetService.removeChangeListener(123)
-            addWidget(NewWidget(null, "widget1", 10))
+            addWidget(NewWidgetDto(null, "widget1", 10))
             assertThat(called).isFalse()
             Unit
         }
@@ -186,7 +186,7 @@ class WidgetServiceTest: ServerTest() {
 
         @Test
         fun testUpdateInvalidWidget() = runBlocking {
-            assertThat(widgetService.updateWidget(NewWidget(-1, "invalid", -1))).isNull()
+            assertThat(widgetService.updateWidget(NewWidgetDto(-1, "invalid", -1))).isNull()
         }
 
         @Test
@@ -201,7 +201,7 @@ class WidgetServiceTest: ServerTest() {
         }
     }
 
-    private suspend fun addWidget(widget: NewWidget): Widget {
+    private suspend fun addWidget(widget: NewWidgetDto): WidgetDto {
         return widgetService.addWidget(widget)
     }
 }
