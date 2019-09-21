@@ -1,5 +1,9 @@
 ## RESTful API for money transfer between two accounts in Kotlin.
 
+## Run the app:
+
+`./gradlew run`
+
 ## Libraries used:
 
  - [Ktor](https://github.com/ktorio/ktor) - Kotlin async web framework
