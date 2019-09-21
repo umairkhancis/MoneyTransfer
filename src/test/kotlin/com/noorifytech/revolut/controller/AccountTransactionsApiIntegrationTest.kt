@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
+
 /**
  * Integration Test from API controller to Database.
  */
@@ -37,7 +38,7 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun testGetAccountTransactions_returnsListOfTransactions() {
+    fun getAccountTransactions_returnsListOfTransactions() {
         // Arrange
         val transaction1 = AccountTransactionDto(null, "Umair Ahmed Khan", 1, 2, BigDecimal.valueOf(50), System.currentTimeMillis())
         val transaction2 = AccountTransactionDto(null, "Aamir Ahmed Khan", 2, 3, BigDecimal.valueOf(50), System.currentTimeMillis())
@@ -61,7 +62,7 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun testGetAccountTransactions_whenNoTransactionsInTheSystem_returnsEmptyListOfTransactions() {
+    fun getAccountTransactions_whenNoTransactionsInTheSystem_returnsEmptyListOfTransactions() {
         // Arrange
         // Act
         val response = get("/transaction")
@@ -75,10 +76,16 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun testGetAccountTransaction_returnsSpecificTransactionWithTheGivenId() {
+    fun getAccountTransaction_returnsSpecificTransactionWithTheGivenId() {
         // Arrange
         val transaction = AccountTransactionDto(null, "Salary", 1, 2, BigDecimal.valueOf(50), System.currentTimeMillis())
         addTransaction(transaction)
+
+        val responseType = Response<List<AccountTransactionDto>>()
+        val response = get("/transaction")
+                .then()
+                .statusCode(200)
+                .extract().`as`(responseType.javaClass)
 
         // Act & Assert
         get("/transaction/{id}", 1)
@@ -87,6 +94,34 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
                 .body("data.srcAccountId", equalTo(transaction.srcAccountId))
                 .body("data.destAccountId", equalTo(transaction.destAccountId))
                 .body("data.purpose", equalTo(transaction.purpose))
+    }
+
+    @Test
+    fun checkBalanceAfterSuccessfulTransaction_whenSrcAndDestAccountsInitialBalanceIs100AndTransferAmountIs25_thenSrcAccountBalanceShouldBe75AndDestAccountBalanceShouldBe125() {
+        // Arrange
+        val transaction = AccountTransactionDto(null, "Salary", 1, 2, BigDecimal.valueOf(25), System.currentTimeMillis())
+
+        // Act
+        given()
+                .contentType(ContentType.JSON)
+                .body(transaction)
+                .When()
+                .post("/transaction/transfer")
+                .then()
+                .statusCode(201)
+                .body("data.srcAccountId", equalTo(transaction.srcAccountId))
+                .body("data.destAccountId", equalTo(transaction.destAccountId))
+                .body("data.purpose", equalTo(transaction.purpose))
+
+        // Assert
+        get("/account/{id}", transaction.srcAccountId)
+                .then()
+                .statusCode(200)
+                .body("data.balance", equalTo(75))
+        get("/account/{id}", transaction.destAccountId)
+                .then()
+                .statusCode(200)
+                .body("data.balance", equalTo(125))
     }
 
     private fun addTransaction(transaction: AccountTransactionDto) {

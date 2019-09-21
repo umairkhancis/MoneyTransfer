@@ -1,19 +1,23 @@
-package com.noorifytech.revolut.dao.impl.db
+package com.noorifytech.revolut.dao.impl.db.impl
 
 import com.noorifytech.revolut.entity.AccountTransactions
 import com.noorifytech.revolut.entity.Accounts
 import com.noorifytech.revolut.entity.Users
+import com.noorifytech.revolut.exception.TransactionFailedException
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils.create
+import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
+import java.sql.Connection
 
-object H2Database : com.noorifytech.revolut.dao.impl.db.Database() {
-
+object H2Database : com.noorifytech.revolut.dao.impl.db.Database {
     override fun init() {
         Database.connect(hikari())
         transaction {
@@ -21,6 +25,38 @@ object H2Database : com.noorifytech.revolut.dao.impl.db.Database() {
             insertInitialData()
         }
     }
+
+    override suspend fun <T> query(
+            block: (transaction: Transaction) -> T): T =
+            withContext(Dispatchers.IO) {
+                transaction { block(this) }
+            }
+
+    @Throws(TransactionFailedException::class)
+    override suspend fun <T> executeTransaction(
+            block: (transaction: Transaction) -> T) =
+            withContext(Dispatchers.IO) {
+                /**
+                 * TRANSACTION_SERIALIZABLE mode of transaction
+                 * will make sure that transaction is ACID.
+                 *
+                 * Read more:
+                 * https://github.com/JetBrains/Exposed/wiki/Transactions
+                 */
+                transaction(Connection.TRANSACTION_SERIALIZABLE, 1) {
+                    try {
+                        block(this)
+                        this.commit()
+                    } catch (ex: TransactionFailedException) {
+                        this.rollback()
+                        throw ex
+                    } catch (e: Exception) {
+                        this.rollback()
+                        throw TransactionFailedException(e.message)
+                    }
+                }
+            }
+
 
     private fun insertInitialData(): InsertStatement<Number> {
         insertUsersData()

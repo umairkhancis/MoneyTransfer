@@ -30,7 +30,7 @@ fun Route.accountTransaction(service: AccountTransactionService) {
             val accountTransaction = call.receive<AccountTransactionDto>()
             val response = service.transfer(accountTransaction)
             if (response.data == null) call.respond(HttpStatusCode.fromValue(response.code), response)
-            else call.respond(HttpStatusCode.fromValue(response.code), response.data)
+            else call.respond(HttpStatusCode.fromValue(response.code), response)
         }
     }
 }

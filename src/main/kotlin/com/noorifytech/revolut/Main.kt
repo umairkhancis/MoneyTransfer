@@ -5,7 +5,7 @@ import com.noorifytech.revolut.controller.account
 import com.noorifytech.revolut.controller.accountTransaction
 import com.noorifytech.revolut.dao.impl.AccountDaoImpl
 import com.noorifytech.revolut.dao.impl.AccountTransactionDaoImpl
-import com.noorifytech.revolut.dao.impl.db.H2Database
+import com.noorifytech.revolut.dao.impl.db.impl.H2Database
 import com.noorifytech.revolut.mapper.AccountMapper
 import com.noorifytech.revolut.mapper.AccountTransactionMapper
 import com.noorifytech.revolut.repository.impl.AccountRepositoryImpl

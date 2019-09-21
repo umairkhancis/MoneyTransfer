@@ -21,6 +21,10 @@ open class ServerTest {
         return this.`as`(T::class.java)
     }
 
+    protected inline fun <reified T, R> ResponseBodyExtractionOptions.convert(): T {
+        return this.`as`(T::class.java)
+    }
+
     companion object {
 
         private var serverStarted = false
