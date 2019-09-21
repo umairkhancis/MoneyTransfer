@@ -32,7 +32,7 @@ class AccountTransactionServiceImpl(
             destAccount == null -> Response(null, HttpStatusCode.NotFound.value, "Destination account not found!")
             else -> try {
                 val transaction = transactionRepository.create(data)
-                Response(transaction, HttpStatusCode.Accepted.value, "Transaction successfully completed!")
+                Response(transaction, HttpStatusCode.Created.value, "Transaction successfully completed!")
             } catch (ex: TransactionFailedException) {
                 Response(null, HttpStatusCode.InternalServerError.value, "Transaction Failed due to ${ex.message}")
             }

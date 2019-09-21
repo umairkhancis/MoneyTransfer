@@ -1,7 +1,7 @@
 package com.noorifytech.revolut.dao.impl
 
 import com.noorifytech.revolut.dao.AccountTransactionDao
-import com.noorifytech.revolut.dao.impl.db.H2Database
+import com.noorifytech.revolut.dao.impl.db.Database
 import com.noorifytech.revolut.dto.AccountDto
 import com.noorifytech.revolut.dto.AccountTransactionDto
 import com.noorifytech.revolut.entity.AccountTransactions
@@ -9,9 +9,12 @@ import com.noorifytech.revolut.entity.Accounts
 import com.noorifytech.revolut.exception.TransactionFailedException
 import com.noorifytech.revolut.mapper.AccountMapper
 import com.noorifytech.revolut.mapper.AccountTransactionMapper
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 
-class AccountTransactionDaoImpl(private val db: H2Database,
+class AccountTransactionDaoImpl(private val db: Database,
                                 private val accountMapper: AccountMapper,
                                 private val accountTransactionMapper: AccountTransactionMapper)
     : AccountTransactionDao {
@@ -68,26 +71,5 @@ class AccountTransactionDaoImpl(private val db: H2Database,
         return Accounts.select { (Accounts.id eq accountId) }
                 .mapNotNull { accountMapper.toAccountDto(it) }
                 .single()
-    }
-
-    override suspend fun update(data: AccountTransactionDto): AccountTransactionDto? {
-        return if (data.id != null) {
-            db.query {
-                AccountTransactions.update({ AccountTransactions.id eq data.id }) {
-                    it[srcAccountId] = data.srcAccountId
-                    it[destAccountId] = data.destAccountId
-                    it[purpose] = data.purpose
-                    it[amount] = data.amount
-                    it[dateUpdated] = System.currentTimeMillis()
-                }
-            }
-            get(data.id)
-        } else {
-            null
-        }
-    }
-
-    override suspend fun delete(id: Int): Boolean = db.query {
-        AccountTransactions.deleteWhere { AccountTransactions.id eq id } > 0
     }
 }

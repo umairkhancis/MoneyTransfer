@@ -7,6 +7,6 @@ object AccountTransactions : Table() {
     val purpose = varchar("name", 255)
     val srcAccountId = integer("src_account_id").references(Accounts.id)
     val destAccountId = integer("dest_account_id").references(Accounts.id)
-    val amount = decimal("amount", 15, 4)
+    val amount = decimal("amount", 15, 0)
     val dateUpdated = long("dateUpdated")
 }

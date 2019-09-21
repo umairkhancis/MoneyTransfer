@@ -1,4 +1,4 @@
-package com.noorifytech.revolut.dao.impl.db
+package com.noorifytech.revolut.common
 
 import com.noorifytech.revolut.entity.AccountTransactions
 import com.noorifytech.revolut.entity.Accounts
@@ -6,31 +6,24 @@ import com.noorifytech.revolut.entity.Users
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils.create
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.math.BigDecimal
 
-object H2Database : com.noorifytech.revolut.dao.impl.db.Database() {
-
+object TestH2Database : com.noorifytech.revolut.dao.impl.db.Database() {
     override fun init() {
         Database.connect(hikari())
         transaction {
             createTables()
-            insertInitialData()
+            insertUsersData()
         }
     }
 
-    private fun insertInitialData(): InsertStatement<Number> {
-        insertUsersData()
-        return insertAccountsData()
-    }
-
     private fun createTables() {
-        create(Users)
-        create(Accounts)
-        create(AccountTransactions)
+        SchemaUtils.create(Users)
+        SchemaUtils.create(Accounts)
+        SchemaUtils.create(AccountTransactions)
     }
 
     private fun insertUsersData(): InsertStatement<Number> {
@@ -47,27 +40,6 @@ object H2Database : com.noorifytech.revolut.dao.impl.db.Database() {
         return Users.insert {
             it[name] = "Usman Ahmed Khan"
             it[email] = "aamirkhan@gmail.com"
-            it[dateUpdated] = System.currentTimeMillis()
-        }
-    }
-
-    private fun insertAccountsData(): InsertStatement<Number> {
-        Accounts.insert {
-            it[name] = "Umair Ahmed Khan"
-            it[userId] = 1
-            it[balance] = BigDecimal.valueOf(100)
-            it[dateUpdated] = System.currentTimeMillis()
-        }
-        Accounts.insert {
-            it[name] = "Aamir Ahmed Khan"
-            it[userId] = 2
-            it[balance] = BigDecimal.valueOf(100)
-            it[dateUpdated] = System.currentTimeMillis()
-        }
-        return Accounts.insert {
-            it[name] = "Usman Ahmed Khan"
-            it[userId] = 3
-            it[balance] = BigDecimal.valueOf(100)
             it[dateUpdated] = System.currentTimeMillis()
         }
     }

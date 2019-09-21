@@ -3,7 +3,6 @@ package com.noorifytech.revolut
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.noorifytech.revolut.controller.account
 import com.noorifytech.revolut.controller.accountTransaction
-import com.noorifytech.revolut.controller.widget
 import com.noorifytech.revolut.dao.impl.AccountDaoImpl
 import com.noorifytech.revolut.dao.impl.AccountTransactionDaoImpl
 import com.noorifytech.revolut.dao.impl.db.H2Database
@@ -11,7 +10,6 @@ import com.noorifytech.revolut.mapper.AccountMapper
 import com.noorifytech.revolut.mapper.AccountTransactionMapper
 import com.noorifytech.revolut.repository.impl.AccountRepositoryImpl
 import com.noorifytech.revolut.repository.impl.AccountTransactionRepositoryImpl
-import com.noorifytech.revolut.service.WidgetService
 import com.noorifytech.revolut.service.impl.AccountServiceImpl
 import com.noorifytech.revolut.service.impl.AccountTransactionServiceImpl
 import io.ktor.application.Application
@@ -39,7 +37,6 @@ fun Application.module() {
     H2Database.init()
 
     install(Routing) {
-        widget(WidgetService())
         account(AccountServiceImpl(AccountRepositoryImpl(AccountDaoImpl(H2Database, AccountMapper))))
         accountTransaction(
                 AccountTransactionServiceImpl(
@@ -52,5 +49,6 @@ fun Application.module() {
 }
 
 fun main(args: Array<String>) {
-    embeddedServer(Netty, 8080, module = Application::module).start(wait = true)
+    embeddedServer(Netty, 8080, watchPaths = listOf("Main"), module = Application::module)
+            .start(wait = true)
 }

@@ -1,6 +1,5 @@
 package com.noorifytech.revolut.common
 
-import com.noorifytech.revolut.entity.Widgets
 import com.noorifytech.revolut.module
 import io.ktor.application.Application
 import io.ktor.server.engine.ApplicationEngine
@@ -9,10 +8,7 @@ import io.ktor.server.netty.Netty
 import io.restassured.RestAssured
 import io.restassured.response.ResponseBodyExtractionOptions
 import io.restassured.specification.RequestSpecification
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import java.util.concurrent.TimeUnit
 
 open class ServerTest {
@@ -45,11 +41,4 @@ open class ServerTest {
             }
         }
     }
-
-    @BeforeEach
-    fun before() = transaction {
-        Widgets.deleteAll()
-        Unit
-    }
-
 }
