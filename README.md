@@ -48,5 +48,4 @@ returns
 
 ## Testing
 100% test coverage by **Unit Tests** for service layer and repository layer and 
-**Integration Tests** for all apis
-.
+**Integration Tests** for all apis.
