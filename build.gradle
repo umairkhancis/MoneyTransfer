@@ -17,6 +17,8 @@ apply plugin: 'kotlin'
 
 apply plugin: 'application'
 
+mainClassName = 'com.noorifytech.revolut.Main'
+
 sourceCompatibility = 1.8
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"

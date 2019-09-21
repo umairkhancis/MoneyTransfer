@@ -48,7 +48,12 @@ fun Application.module() {
 
 }
 
-fun main(args: Array<String>) {
-    embeddedServer(Netty, 8080, watchPaths = listOf("Main"), module = Application::module)
-            .start(wait = true)
+class Main {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            embeddedServer(Netty, 8080, watchPaths = listOf("Main"), module = Application::module)
+                    .start(wait = true)
+        }
+    }
 }
