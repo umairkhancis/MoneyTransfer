@@ -12,7 +12,6 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -23,13 +22,6 @@ import java.math.BigDecimal
  */
 class AccountTransactionsApiIntegrationTest : ServerTest() {
 
-    @BeforeEach
-    fun setup() {
-        transaction {
-            AccountTransactions.deleteAll()
-        }
-    }
-
     @AfterEach
     fun tear() {
         transaction {
@@ -38,11 +30,25 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun getAccountTransactions_returnsListOfTransactions() {
+    fun getAccountTransactionsApi_whenNoTransactionsInTheSystem_returnsEmptyListOfTransactions() {
         // Arrange
-        val transaction1 = AccountTransactionDto(null, "Umair Ahmed Khan", 1, 2, BigDecimal.valueOf(50), System.currentTimeMillis())
-        val transaction2 = AccountTransactionDto(null, "Aamir Ahmed Khan", 2, 3, BigDecimal.valueOf(50), System.currentTimeMillis())
-        val transaction3 = AccountTransactionDto(null, "Usman Ahmed Khan", 3, 2, BigDecimal.valueOf(50), System.currentTimeMillis())
+        // Act
+        val response = get("/transaction")
+                .then()
+                .statusCode(200)
+                .extract().to<Response<List<AccountTransactionDto>>>()
+        val transactionsList = response.data
+
+        // Assert
+        assertThat(transactionsList).hasSize(0)
+    }
+
+    @Test
+    fun getAccountTransactionsApi_returnsListOfTransactions() {
+        // Arrange
+        val transaction1 = AccountTransactionDto(null, "Umair Ahmed Khan", 1, 2, BigDecimal.valueOf(10), System.currentTimeMillis())
+        val transaction2 = AccountTransactionDto(null, "Aamir Ahmed Khan", 2, 3, BigDecimal.valueOf(10), System.currentTimeMillis())
+        val transaction3 = AccountTransactionDto(null, "Usman Ahmed Khan", 3, 1, BigDecimal.valueOf(10), System.currentTimeMillis())
         addTransaction(transaction1)
         addTransaction(transaction2)
         addTransaction(transaction3)
@@ -62,33 +68,19 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun getAccountTransactions_whenNoTransactionsInTheSystem_returnsEmptyListOfTransactions() {
+    fun getAccountTransactionApi_returnsSpecificTransactionWithTheGivenId() {
         // Arrange
-        // Act
-        val response = get("/transaction")
-                .then()
-                .statusCode(200)
-                .extract().to<Response<List<AccountTransactionDto>>>()
-        val transactionsList = response.data
-
-        // Assert
-        assertThat(transactionsList).hasSize(0)
-    }
-
-    @Test
-    fun getAccountTransaction_returnsSpecificTransactionWithTheGivenId() {
-        // Arrange
-        val transaction = AccountTransactionDto(null, "Salary", 1, 2, BigDecimal.valueOf(50), System.currentTimeMillis())
+        val transaction = AccountTransactionDto(null, "Salary", 1, 2, BigDecimal.valueOf(10), System.currentTimeMillis())
         addTransaction(transaction)
-
-        val responseType = Response<List<AccountTransactionDto>>()
         val response = get("/transaction")
                 .then()
                 .statusCode(200)
-                .extract().`as`(responseType.javaClass)
+                .extract()
+                .response()
+        val latestTransactionId = response.jsonPath().getInt("data[0].id")
 
         // Act & Assert
-        get("/transaction/{id}", 1)
+        get("/transaction/{id}", latestTransactionId)
                 .then()
                 .statusCode(200)
                 .body("data.srcAccountId", equalTo(transaction.srcAccountId))
@@ -97,9 +89,24 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
     }
 
     @Test
-    fun checkBalanceAfterSuccessfulTransaction_whenSrcAndDestAccountsInitialBalanceIs100AndTransferAmountIs25_thenSrcAccountBalanceShouldBe75AndDestAccountBalanceShouldBe125() {
+    fun transferApi_whenTransferAmountIsLessThanCurrentBalanceOfSrcAccount_thenCheckBalanceAfterSuccessfulTransactionForBothSrcAndDestAccount2() {
         // Arrange
-        val transaction = AccountTransactionDto(null, "Salary", 1, 2, BigDecimal.valueOf(25), System.currentTimeMillis())
+        val srcAccountId = 1
+        val destAccountId = 2
+        val currentSrcAccountBalance = get("/account/{id}", srcAccountId)
+                .then()
+                .extract()
+                .response()
+                .jsonPath()
+                .getInt("data.balance")
+        val currentDestAccountBalance = get("/account/{id}", destAccountId)
+                .then()
+                .extract()
+                .response()
+                .jsonPath()
+                .getInt("data.balance")
+        val transferAmount = currentSrcAccountBalance - 25L
+        val transaction = AccountTransactionDto(null, "Salary", srcAccountId, destAccountId, BigDecimal.valueOf(transferAmount), System.currentTimeMillis())
 
         // Act
         given()
@@ -117,11 +124,51 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
         get("/account/{id}", transaction.srcAccountId)
                 .then()
                 .statusCode(200)
-                .body("data.balance", equalTo(75))
+                .body("data.balance", equalTo((currentDestAccountBalance - transferAmount).toInt()))
         get("/account/{id}", transaction.destAccountId)
                 .then()
                 .statusCode(200)
-                .body("data.balance", equalTo(125))
+                .body("data.balance", equalTo((currentDestAccountBalance + transferAmount).toInt()))
+    }
+
+    @Test
+    fun transferApi_whenTransferAmountIsMoreThanCurrentBalanceOfSrcAccount_thenCheckBalanceAfterFailedTransactionForBothSrcAndDestAccountItShouldBeSameAsBefore() {
+        // Arrange
+        val srcAccountId = 1
+        val destAccountId = 2
+        val currentSrcAccountBalance = get("/account/{id}", srcAccountId)
+                .then()
+                .extract()
+                .response()
+                .jsonPath()
+                .getInt("data.balance")
+        val currentDestAccountBalance = get("/account/{id}", destAccountId)
+                .then()
+                .extract()
+                .response()
+                .jsonPath()
+                .getInt("data.balance")
+        val transferAmount = currentSrcAccountBalance + 50L
+        val transaction = AccountTransactionDto(null, "Salary", srcAccountId, destAccountId, BigDecimal.valueOf(transferAmount), System.currentTimeMillis())
+
+        // Act
+        given()
+                .contentType(ContentType.JSON)
+                .body(transaction)
+                .When()
+                .post("/transaction/transfer")
+                .then()
+                .statusCode(500)
+
+        // Assert
+        get("/account/{id}", transaction.srcAccountId)
+                .then()
+                .statusCode(200)
+                .body("data.balance", equalTo(currentSrcAccountBalance))
+        get("/account/{id}", transaction.destAccountId)
+                .then()
+                .statusCode(200)
+                .body("data.balance", equalTo(currentDestAccountBalance))
     }
 
     private fun addTransaction(transaction: AccountTransactionDto) {
