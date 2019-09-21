@@ -12,7 +12,6 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
@@ -171,22 +170,19 @@ class AccountTransactionsApiIntegrationTest : ServerTest() {
                 .body("data.balance", equalTo(currentDestAccountBalance))
     }
 
+    @Test
+    fun testGetInvalidAccountTransaction() {
+        get("/transaction/{id}", "-1")
+                .then()
+                .statusCode(404)
+    }
+
     private fun addTransaction(transaction: AccountTransactionDto) {
         given()
                 .contentType(ContentType.JSON)
                 .body(transaction)
                 .When()
                 .post("/transaction/transfer")
-    }
-
-    @Nested
-    inner class ErrorCases {
-        @Test
-        fun testGetInvalidAccountTransaction() {
-            get("/transaction/{id}", "-1")
-                    .then()
-                    .statusCode(404)
-        }
     }
 
 }

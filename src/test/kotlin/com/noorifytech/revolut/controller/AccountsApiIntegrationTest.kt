@@ -6,7 +6,6 @@ import com.noorifytech.revolut.dto.Response
 import io.restassured.RestAssured.get
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.CoreMatchers.equalTo
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
@@ -45,14 +44,10 @@ class AccountsApiIntegrationTest : ServerTest() {
                 .body("data.name", equalTo("Umair Ahmed Khan"))
     }
 
-    @Nested
-    inner class ErrorCases {
-        @Test
-        fun getInvalidAccount_returns404() {
-            get("/account/{id}", "-1")
-                    .then()
-                    .statusCode(404)
-        }
-
+    @Test
+    fun getInvalidAccount_returns404() {
+        get("/account/{id}", "-1")
+                .then()
+                .statusCode(404)
     }
 }
