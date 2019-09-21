@@ -1,4 +1,4 @@
-## RESTful API for money transfer between two accounts in pure Kotlin.
+## RESTful API for money transfer between two accounts in Kotlin.
 
 ## Libraries used:
 
